@@ -1,0 +1,17 @@
+"Time for a break" = "Пора сделать перерыв";
+"You have been working for %d min without a pause.\nStand up, walk around, look into the distance." = "Ты работаешь %d мин без паузы.\nВстань, пройдись, посмотри вдаль.";
+"%d more min" = "Ещё %d мин";
+"Taking a break" = "Иду отдыхать";
+"Paused until %@" = "На паузе до %@";
+"On break: %d min" = "Перерыв: %d мин";
+"Working: %d of %d min" = "Без перерыва: %d мин из %d";
+"I've rested — start over" = "Я отдохнул — начать заново";
+"Resume" = "Возобновить";
+"Do not disturb for 1 hour" = "Не беспокоить 1 час";
+"Show reminder (test)" = "Показать напоминание (тест)";
+"Remind after" = "Напоминать через";
+"Break counts after" = "Перерыв засчитывается после";
+"Launch at login" = "Запускать при входе";
+"Quit" = "Выход";
+"%d min" = "%d мин";
+"Language" = "Язык";

@@ -4,7 +4,8 @@ cd "$(dirname "$0")"
 
 APP=build/BreakBuddy.app
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp -R Resources/*.lproj "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -12,6 +13,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <plist version="1.0">
 <dict>
     <key>CFBundleIdentifier</key><string>local.breakbuddy</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key><array><string>en</string><string>ru</string></array>
     <key>CFBundleName</key><string>BreakBuddy</string>
     <key>CFBundleExecutable</key><string>BreakBuddy</string>
     <key>CFBundlePackageType</key><string>APPL</string>

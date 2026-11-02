@@ -2,6 +2,11 @@ import Cocoa
 import SwiftUI
 import ServiceManagement
 
+func L(_ key: String, _ args: CVarArg...) -> String {
+    let bundle = Bundle.main.path(forResource: Settings.language, ofType: "lproj").flatMap(Bundle.init(path:)) ?? .main
+    return String(format: bundle.localizedString(forKey: key, value: key, table: nil), arguments: args)
+}
+
 enum Settings {
     private static let d = UserDefaults.standard
 
@@ -15,6 +20,11 @@ enum Settings {
         set { d.set(newValue, forKey: "breakLength") }
     }
 
+    static var language: String {
+        get { d.string(forKey: "language") ?? "en" }
+        set { d.set(newValue, forKey: "language") }
+    }
+
     static let renagInterval: TimeInterval = 5 * 60
 }
 
@@ -26,14 +36,14 @@ struct ReminderView: View {
     var body: some View {
         VStack(spacing: 14) {
             Text("☕").font(.system(size: 52))
-            Text("Пора сделать перерыв").font(.title2).bold()
-            Text("Ты работаешь \(minutes) мин без паузы.\nВстань, пройдись, посмотри вдаль.")
+            Text(verbatim: L("Time for a break")).font(.title2).bold()
+            Text(verbatim: L("You have been working for %d min without a pause.\nStand up, walk around, look into the distance.", minutes))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             HStack(spacing: 10) {
-                Button("Ещё 5 мин") { onSnooze(5) }
-                Button("Ещё 15 мин") { onSnooze(15) }
-                Button("Иду отдыхать") { onRest() }.keyboardShortcut(.defaultAction)
+                Button(L("%d more min", 5)) { onSnooze(5) }
+                Button(L("%d more min", 15)) { onSnooze(15) }
+                Button(L("Taking a break")) { onRest() }.keyboardShortcut(.defaultAction)
             }
             .padding(.top, 6)
         }
@@ -190,32 +200,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let status: String
         if isPaused, let until = pausedUntil {
-            status = "На паузе до \(until.formatted(date: .omitted, time: .shortened))"
+            status = L("Paused until %@", until.formatted(date: .omitted, time: .shortened))
         } else if onBreak {
-            status = "Перерыв: \(Int(idleSeconds / 60)) мин"
+            status = L("On break: %d min", Int(idleSeconds / 60))
         } else {
-            status = "Без перерыва: \(workedMinutes) мин из \(Int(Settings.workLimit / 60))"
+            status = L("Working: %d of %d min", workedMinutes, Int(Settings.workLimit / 60))
         }
         menu.addItem(NSMenuItem(title: status, action: nil, keyEquivalent: ""))
         menu.addItem(.separator())
 
-        menu.addItem(item("Я отдохнул — начать заново", #selector(resetSession)))
+        menu.addItem(item(L("I've rested — start over"), #selector(resetSession)))
         if isPaused {
-            menu.addItem(item("Возобновить", #selector(resume)))
+            menu.addItem(item(L("Resume"), #selector(resume)))
         } else {
-            menu.addItem(item("Не беспокоить 1 час", #selector(pauseHour)))
+            menu.addItem(item(L("Do not disturb for 1 hour"), #selector(pauseHour)))
         }
         menu.addItem(.separator())
 
-        menu.addItem(item("Показать напоминание (тест)", #selector(testReminder)))
-        menu.addItem(submenu("Напоминать через", values: [25, 45, 50, 60, 90], current: Settings.workLimit, action: #selector(setWorkLimit(_:))))
-        menu.addItem(submenu("Перерыв засчитывается после", values: [2, 3, 5, 10], current: Settings.breakLength, action: #selector(setBreakLength(_:))))
+        menu.addItem(item(L("Show reminder (test)"), #selector(testReminder)))
+        menu.addItem(submenu(L("Remind after"), values: [25, 45, 50, 60, 90], current: Settings.workLimit, action: #selector(setWorkLimit(_:))))
+        menu.addItem(submenu(L("Break counts after"), values: [2, 3, 5, 10], current: Settings.breakLength, action: #selector(setBreakLength(_:))))
 
-        let login = item("Запускать при входе", #selector(toggleLogin))
+        let language = NSMenuItem(title: L("Language"), action: nil, keyEquivalent: "")
+        let languages = NSMenu()
+        for (code, name) in [("en", "English"), ("ru", "Русский")] {
+            let child = item(name, #selector(setLanguage(_:)))
+            child.representedObject = code
+            child.state = Settings.language == code ? .on : .off
+            languages.addItem(child)
+        }
+        language.submenu = languages
+        menu.addItem(language)
+
+        let login = item(L("Launch at login"), #selector(toggleLogin))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Выход", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: L("Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }
 
     private func item(_ title: String, _ action: Selector) -> NSMenuItem {
@@ -228,7 +249,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         let sub = NSMenu()
         for minutes in values {
-            let child = item("\(minutes) мин", action)
+            let child = item(L("%d min", minutes), action)
             child.tag = minutes
             child.state = Int(current / 60) == minutes ? .on : .off
             sub.addItem(child)
@@ -266,6 +287,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func setBreakLength(_ sender: NSMenuItem) {
         Settings.breakLength = TimeInterval(sender.tag * 60)
+    }
+
+    @objc private func setLanguage(_ sender: NSMenuItem) {
+        guard let code = sender.representedObject as? String else { return }
+        Settings.language = code
+        updateTitle()
     }
 
     @objc private func toggleLogin() {
